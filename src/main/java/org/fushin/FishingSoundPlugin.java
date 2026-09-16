@@ -7,14 +7,16 @@ import net.runelite.client.audio.AudioPlayer;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import com.google.inject.Provides;
+import net.runelite.client.config.ConfigManager;
 
 import javax.inject.Inject;
 
 @Slf4j
 @PluginDescriptor(
 		name = "Nice day for fushin', ain't it?",
-		description = "Plays sound clip from legendary NPC Baelin everytime you fish."
-
+		description = "Plays sound clip from legendary NPC Baelin everytime you fish.",
+		tags = {"fishing", "sound", "baelin"}
 )
 public class FishingSoundPlugin extends Plugin {
 	@Inject
@@ -23,11 +25,20 @@ public class FishingSoundPlugin extends Plugin {
 	@Inject
 	private AudioPlayer audioPlayer;
 
+	@Inject
+	private FishingSoundConfig config;
+
 	@Override
 	protected void startUp() {
 		log.info("Fishing Sound started!");
 
 
+	}
+
+	@Provides
+	FishingSoundConfig provideConfig(ConfigManager configManager)
+	{
+		return configManager.getConfig(FishingSoundConfig.class);
 	}
 
 	@Override
@@ -49,7 +60,16 @@ public class FishingSoundPlugin extends Plugin {
 				|| event.getActor().getAnimation() == 621
 				|| event.getActor().getAnimation() == 620) {
 			try {
-				audioPlayer.play(getClass().getResourceAsStream("/fushin.wav"), 1.0f);
+				float volume = config.volume();
+
+				float gain = volume == 0
+						? -80.0f
+						: -60.0f + (volume / 100.0f) * 60.0f;
+
+				audioPlayer.play(
+						getClass().getResourceAsStream("/fushin.wav"),
+						gain
+				);
 			} catch (Exception e) {
 				log.error("Unable to play fishing sound", e);
 			}
